@@ -12,3 +12,5 @@ name = "pino_xrdb"
 path = "src/lib.rs"
 
 [dependencies]
+thiserror = "1"
+anyhow = "1"
