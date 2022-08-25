@@ -3,5 +3,5 @@
 version = 3
 
 [[package]]
-name = "pino_template"
+name = "pino_xrdb"
 version = "0.1.0"
