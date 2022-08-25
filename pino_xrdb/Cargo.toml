@@ -1,0 +1,14 @@
+[package]
+name = "pino_xrdb"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+authors = ["MrPicklePinosaur"]
+description = "Simple xrdb query library"
+repository = "https://github.com/MrPicklePinosaur/pino_xutils.git"
+
+[lib]
+name = "pino_xrdb"
+path = "src/lib.rs"
+
+[dependencies]
