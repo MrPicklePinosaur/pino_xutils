@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use std::process::Command;
 use thiserror::Error;
 use anyhow::{Result, Error};
+use pino_utils::some_or_continue;
 
 #[derive(Error, Debug)]
 pub enum XrdbError {
@@ -10,18 +11,53 @@ pub enum XrdbError {
     XrdbMissing,
     #[error("xrdb exited with error: {0}")]
     XrdbErrored(String),
+    #[error("failed to parse line")]
+    ParseError,
 }
 
+/// Xrdb database struct
 pub struct Xrdb {
     db: HashMap<String, HashMap<String, String>>,
     univeral: HashMap<String, String> 
 }
 
 impl Xrdb {
+    
+    /// Construct a new Xrdb database
+    pub fn new() -> Result<Self> {
 
-    // pub fn new() -> Result<Self> {
-         
-    // }
+        // run xrdb command 
+        let output = Command::new("xrdb")
+            .arg("-query")
+            .output()
+            .map_err(|_| XrdbError::XrdbMissing)?;
+
+        if !output.status.success()  {
+            let error_str = String::from_utf8(output.stderr)?;
+            return Err(Error::new(XrdbError::XrdbErrored(error_str)));
+        }
+
+        let output_str = String::from_utf8(output.stdout)?;
+
+        let mut xrdb = Xrdb {
+            db: HashMap::new(),
+            univeral: HashMap::new()
+        };
+        
+        // parse output
+        for line in output_str.lines() {
+            let (prog, rest) = some_or_continue!(line.split_once("."));
+            let (res, val) = some_or_continue!(rest.split_once(":"));
+
+            if prog.trim() == "*" {
+                xrdb.insert_univeral(res.trim().to_owned(), val.trim().to_owned());
+            } else {
+                xrdb.insert(prog.trim(), res.trim().to_owned(), val.trim().to_owned());
+            }        
+        }
+
+        Ok(xrdb)
+    }
 
     /// Insert a new resource
     pub fn insert(&mut self, program: &str, res: String, val: String) {
@@ -63,34 +99,13 @@ impl Xrdb {
 
 }
 
-pub fn xrdb() -> Result<String> {
-    let output = Command::new("xrdb")
-        .arg("-query")
-        .output()
-        .map_err(|_| XrdbError::XrdbMissing)?;
-
-    if !output.status.success()  {
-        let error_str = String::from_utf8(output.stderr)?;
-        return Err(Error::new(XrdbError::XrdbErrored(error_str)));
-    }
-
-    let output_str = String::from_utf8(output.stdout)?;
-    Ok(output_str)
-}
-
-pub fn parse_xrdb(input: &str) {
-    
-    for line in input.lines() {
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use crate::*;
 
     #[test]
     fn command(){
-        let output = xrdb().unwrap();
-        parse_xrdb(&output);
+        let xrdb = Xrdb::new().unwrap();
+        println!("{:?}", xrdb.query("dwm", "color1"));
     }
 }
