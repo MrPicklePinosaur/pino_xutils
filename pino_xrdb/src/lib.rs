@@ -1,10 +1,12 @@
 //! Rust wrapper for `xrdb`. Query the system's xrdb or add new values to it. Can handle wildcards
+//! resources.
 //!
 //! ```rust
+//! use pino_xrdb::Xrdb;
 //! fn main() {
-//!     use pino_xrdb::Xrdb;
 //!
-//!     let xrdb = Xrdb::new().unwrap();
+//!     let mut xrdb = Xrdb::new();
+//!     xrdb.read().unwrap();
 //!     
 //!     if let Some(value) = xrdb.query("dwm", "color1") {
 //!         println!("dwm.color1 has value {}", value);
@@ -45,6 +47,7 @@ impl std::fmt::Display for XrdbError {
 }
 
 /// Xrdb database struct
+#[derive(Default)]
 pub struct Xrdb {
     db: HashMap<String, HashMap<String, String>>,
     univeral: HashMap<String, String> 
@@ -53,7 +56,20 @@ pub struct Xrdb {
 impl Xrdb {
     
     /// Construct a new Xrdb database
-    pub fn new() -> Result<Self, XrdbError> {
+    pub fn new() -> Self {
+        Xrdb::default()
+    }
+
+    /// Read system xrdb
+    ///
+    /// ```rust
+    /// # use pino_xrdb::Xrdb;
+    /// # fn main() {
+    /// let mut xrdb = Xrdb::new();
+    /// xrdb.read().unwrap();
+    /// # }
+    /// ```
+    pub fn read(&mut self) -> Result<(), XrdbError> {
 
         // run xrdb command 
         let output = Command::new("xrdb")
@@ -68,11 +84,6 @@ impl Xrdb {
 
         let output_str = String::from_utf8(output.stdout).map_err(|_| XrdbError::OutputMalformed)?;
 
-        let mut xrdb = Xrdb {
-            db: HashMap::new(),
-            univeral: HashMap::new()
-        };
-        
         // parse output
         for line in output_str.lines() {
             let (prog, rest) = match line.split_once(".") {
@@ -85,21 +96,22 @@ impl Xrdb {
             };
 
             if prog.trim() == "*" {
-                xrdb.insert_universal(res.trim(), val.trim());
+                self.insert_universal(res.trim(), val.trim());
             } else {
-                xrdb.insert(prog.trim(), res.trim(), val.trim());
+                self.insert(prog.trim(), res.trim(), val.trim());
             }        
         }
 
-        Ok(xrdb)
+        Ok(())
     }
 
     /// Insert a new resource
     ///
+    /// Inserting a resource that already exists will replace it.
     /// ```rust
     /// # use pino_xrdb::Xrdb;
     /// # fn main() {
-    /// let mut xrdb = Xrdb::new().unwrap();
+    /// let mut xrdb = Xrdb::new();
     /// xrdb.insert("dwm", "color1", "#ea6962");
     /// 
     /// assert_eq!(xrdb.query("dwm", "color1"), Some(String::from("#ea6962")));
@@ -111,10 +123,12 @@ impl Xrdb {
 
     /// Insert a universal resource.
     ///
+    /// Inserting a universal resource that already exists will replace it. Program specific
+    /// resources will not be overwritten.
     /// ```rust
     /// # use pino_xrdb::Xrdb;
     /// # fn main() {
-    /// let mut xrdb = Xrdb::new().unwrap();
+    /// let mut xrdb = Xrdb::new();
     /// xrdb.insert_universal("color1", "#ea6962");
     /// 
     /// assert_eq!(xrdb.query("dwm", "color1"), Some(String::from("#ea6962")));
@@ -135,7 +149,7 @@ impl Xrdb {
     /// ```rust
     /// # use pino_xrdb::Xrdb;
     /// # fn main() {
-    /// let mut xrdb = Xrdb::new().unwrap();
+    /// let mut xrdb = Xrdb::new();
     /// xrdb.insert_universal("color1", "#ea6962");
     /// 
     /// assert_eq!(xrdb.query("dwm", "color1"), Some(String::from("#ea6962")));
@@ -175,15 +189,4 @@ impl Xrdb {
         self.db.get_mut(program).unwrap()
     }
 
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::*;
-
-    #[test]
-    fn command(){
-        let xrdb = Xrdb::new().unwrap();
-        println!("{:?}", xrdb.query("dwm", "color1"));
-    }
 }
