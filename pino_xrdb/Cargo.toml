@@ -12,6 +12,3 @@ name = "pino_xrdb"
 path = "src/lib.rs"
 
 [dependencies]
-thiserror = "1"
-anyhow = "1"
-pino_utils = { git = "https://github.com/MrPicklePinosaur/pino_utils" }
