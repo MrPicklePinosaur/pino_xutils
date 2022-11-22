@@ -10,4 +10,13 @@ tiny xmodmap parsing library
 
 </div>
 
+Requires `xmodmap` to be installed on the system as this library directly calls
+it and parses the output. Using this library is very simple:
+```rust
+use pino_xmodmap::{KeyTable, Modifier, KeySym};
 
+fn main() {
+    let xmodmap = KeyTable::new().unwrap();
+    let a_key = xmodmap.get_key(KeySym::KEY_a).unwrap();
+}
+```

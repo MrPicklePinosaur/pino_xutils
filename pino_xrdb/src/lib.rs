@@ -86,11 +86,11 @@ impl Xrdb {
 
         // parse output
         for line in output_str.lines() {
-            let (prog, rest) = match line.split_once(".") {
+            let (prog, rest) = match line.split_once('.') {
                 Some(x) => x,
                 None => continue
             };
-            let (res, val) = match rest.split_once(":") {
+            let (res, val) = match rest.split_once(':') {
                 Some(x) => x,
                 None => continue
             };
