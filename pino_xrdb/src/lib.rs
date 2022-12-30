@@ -17,8 +17,7 @@
 //! }
 //! ```
 
-use std::collections::HashMap;
-use std::process::Command;
+use std::{collections::HashMap, process::Command};
 
 /// Error types for xrdb
 #[derive(Debug)]
@@ -38,10 +37,13 @@ impl std::error::Error for XrdbError {}
 impl std::fmt::Display for XrdbError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            XrdbError::Missing => write!(f, "xrdb binary not found, are you sure you have it installed?"),
+            XrdbError::Missing => write!(
+                f,
+                "xrdb binary not found, are you sure you have it installed?"
+            ),
             XrdbError::Errored(e) => write!(f, "xrdb exited with error: {0}", e),
             XrdbError::Invalid => write!(f, "failed to parse line"),
-            XrdbError::OutputMalformed => write!(f, "could not parse xrdb output to string")
+            XrdbError::OutputMalformed => write!(f, "could not parse xrdb output to string"),
         }
     }
 }
@@ -50,11 +52,10 @@ impl std::fmt::Display for XrdbError {
 #[derive(Default)]
 pub struct Xrdb {
     db: HashMap<String, HashMap<String, String>>,
-    univeral: HashMap<String, String> 
+    univeral: HashMap<String, String>,
 }
 
 impl Xrdb {
-    
     /// Construct a new Xrdb database
     pub fn new() -> Self {
         Xrdb::default()
@@ -70,36 +71,37 @@ impl Xrdb {
     /// # }
     /// ```
     pub fn read(&mut self) -> Result<(), XrdbError> {
-
-        // run xrdb command 
+        // run xrdb command
         let output = Command::new("xrdb")
             .arg("-query")
             .output()
             .map_err(|_| XrdbError::Missing)?;
 
-        if !output.status.success()  {
-            let error_str = String::from_utf8(output.stderr).map_err(|_| XrdbError::OutputMalformed)?;
+        if !output.status.success() {
+            let error_str =
+                String::from_utf8(output.stderr).map_err(|_| XrdbError::OutputMalformed)?;
             return Err(XrdbError::Errored(error_str));
         }
 
-        let output_str = String::from_utf8(output.stdout).map_err(|_| XrdbError::OutputMalformed)?;
+        let output_str =
+            String::from_utf8(output.stdout).map_err(|_| XrdbError::OutputMalformed)?;
 
         // parse output
         for line in output_str.lines() {
             let (prog, rest) = match line.split_once('.') {
                 Some(x) => x,
-                None => continue
+                None => continue,
             };
             let (res, val) = match rest.split_once(':') {
                 Some(x) => x,
-                None => continue
+                None => continue,
             };
 
             if prog.trim() == "*" {
                 self.insert_universal(res.trim(), val.trim());
             } else {
                 self.insert(prog.trim(), res.trim(), val.trim());
-            }        
+            }
         }
 
         Ok(())
@@ -113,7 +115,7 @@ impl Xrdb {
     /// # fn main() {
     /// let mut xrdb = Xrdb::new();
     /// xrdb.insert("dwm", "color1", "#ea6962");
-    /// 
+    ///
     /// assert_eq!(xrdb.query("dwm", "color1"), Some(String::from("#ea6962")));
     /// # }
     /// ```
@@ -130,7 +132,7 @@ impl Xrdb {
     /// # fn main() {
     /// let mut xrdb = Xrdb::new();
     /// xrdb.insert_universal("color1", "#ea6962");
-    /// 
+    ///
     /// assert_eq!(xrdb.query("dwm", "color1"), Some(String::from("#ea6962")));
     /// assert_eq!(xrdb.query("st", "color1"), Some(String::from("#ea6962")));
     /// assert_eq!(xrdb.query("dmenu", "color1"), Some(String::from("#ea6962")));
@@ -151,7 +153,7 @@ impl Xrdb {
     /// # fn main() {
     /// let mut xrdb = Xrdb::new();
     /// xrdb.insert_universal("color1", "#ea6962");
-    /// 
+    ///
     /// assert_eq!(xrdb.query("dwm", "color1"), Some(String::from("#ea6962")));
     /// assert_eq!(xrdb.query("st", "color1"), Some(String::from("#ea6962")));
     /// assert_eq!(xrdb.query("dmenu", "color1"), Some(String::from("#ea6962")));
@@ -168,7 +170,7 @@ impl Xrdb {
                 return Some(val.to_owned());
             }
         }
-        
+
         // check if resource was defined in universal
         self.univeral.get(res).map(|v| v.to_owned())
     }
@@ -188,5 +190,4 @@ impl Xrdb {
         }
         self.db.get_mut(program).unwrap()
     }
-
 }
